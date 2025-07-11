@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
   refreshToken: string;
   user: User;
 }
@@ -34,9 +34,9 @@ export const authApi = baseApi.injectEndpoints({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled;
+          const { data } = await queryFulfilled;     
           // Store tokens in AsyncStorage
-          await AsyncStorage.setItem("access_token", data.token);
+          await AsyncStorage.setItem("access_token", data.accessToken);
           await AsyncStorage.setItem("refresh_token", data.refreshToken);
           await AsyncStorage.setItem("user", JSON.stringify(data.user));
         } catch (error) {
