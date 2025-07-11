@@ -1,5 +1,7 @@
 import colors from "@/constants/AppColors";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,9 +11,54 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as yup from "yup";
+
+// Define validation schema
+const validationSchema = yup.object({
+  fullName: yup
+    .string()
+    .required("Full name is required")
+    .min(2, "Full name must be at least 2 characters")
+    .max(50, "Full name must not exceed 50 characters"),
+  email: yup
+    .string()
+    .required("Email is required")
+    .email("Please enter a valid email address"),
+  password: yup.string().required("Password is required"),
+  // .min(8, "Password must be at least 8 characters")
+  // .matches(
+  //   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+  //   "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+  // ),
+  confirmPassword: yup
+    .string()
+    .required("Please confirm your password")
+    .oneOf([yup.ref("password")], "Passwords must match"),
+});
+
+type FormData = yup.InferType<typeof validationSchema>;
 
 export default function SignupPage() {
   const router = useRouter();
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<FormData>({
+    resolver: yupResolver(validationSchema),
+    mode: "onChange",
+  });
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      // TODO: Implement registration logic
+      console.log("Registration data:", data);
+      // You can add your registration API call here
+    } catch (error) {
+      console.error("Registration error:", error);
+    }
+  };
 
   const goToLogin = () => {
     router.push("/login");
@@ -30,52 +77,109 @@ export default function SignupPage() {
           </Text>
 
           <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor={colors.textPlaceholder}
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
+            <Controller
+              control={control}
+              name="fullName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <TextInput
+                    style={[styles.input, errors.fullName && styles.inputError]}
+                    placeholder="Enter your full name"
+                    placeholderTextColor={colors.textPlaceholder}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                  {errors.fullName && (
+                    <Text style={styles.errorText}>
+                      {errors.fullName.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={colors.textPlaceholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    style={[styles.input, errors.email && styles.inputError]}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.textPlaceholder}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                  {errors.email && (
+                    <Text style={styles.errorText}>{errors.email.message}</Text>
+                  )}
+                </View>
+              )}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Create a password"
-                placeholderTextColor={colors.textPlaceholder}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <TextInput
+                    style={[styles.input, errors.password && styles.inputError]}
+                    placeholder="Create a password"
+                    placeholderTextColor={colors.textPlaceholder}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                  {errors.password && (
+                    <Text style={styles.errorText}>
+                      {errors.password.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm your password"
-                placeholderTextColor={colors.textPlaceholder}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      errors.confirmPassword && styles.inputError,
+                    ]}
+                    placeholder="Confirm your password"
+                    placeholderTextColor={colors.textPlaceholder}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+                  {errors.confirmPassword && (
+                    <Text style={styles.errorText}>
+                      {errors.confirmPassword.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
 
             <View style={styles.termsContainer}>
               <Text style={styles.termsText}>
@@ -87,8 +191,17 @@ export default function SignupPage() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                (!isValid || isSubmitting) && styles.primaryButtonDisabled,
+              ]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={!isValid || isSubmitting}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? "Creating Account..." : "Create Account"}
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.signinContainer}>
@@ -171,6 +284,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textDark,
   },
+  inputError: {
+    borderColor: colors.error,
+    borderWidth: 2,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    marginTop: 4,
+    marginLeft: 4,
+  },
   termsContainer: {
     marginTop: 8,
     paddingHorizontal: 4,
@@ -203,6 +326,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: colors.textPlaceholder,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   primaryButtonText: {
     color: colors.white,
