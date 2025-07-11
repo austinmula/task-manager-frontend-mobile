@@ -1,8 +1,10 @@
 import colors from "@/constants/AppColors";
+import { useRegisterMutation } from "@/store/features/auth/store/authApi";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
+  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -40,11 +42,13 @@ type FormData = yup.InferType<typeof validationSchema>;
 
 export default function SignupPage() {
   const router = useRouter();
+  const [registerUser, { isLoading: isRegistering }] = useRegisterMutation();
 
   const {
     control,
     handleSubmit,
-    formState: { errors, isValid, isSubmitting },
+    formState: { errors, isValid },
+    setError,
   } = useForm<FormData>({
     resolver: yupResolver(validationSchema),
     mode: "onChange",
@@ -52,11 +56,53 @@ export default function SignupPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // TODO: Implement registration logic
-      console.log("Registration data:", data);
-      // You can add your registration API call here
-    } catch (error) {
+      const result = await registerUser({
+        email: data.email,
+        password: data.password,
+        name: data.fullName,
+      }).unwrap();
+
+      // Registration successful
+      Alert.alert(
+        "Success!",
+        "Account created successfully. Welcome to Procrastinator!",
+        [
+          {
+            text: "Continue",
+            onPress: () => router.replace("/(tabs)/home"),
+          },
+        ]
+      );
+    } catch (error: any) {
       console.error("Registration error:", error);
+
+      // Handle specific API errors
+      if (error?.data?.message) {
+        // Check if it's an email already exists error
+        if (error.data.message.toLowerCase().includes("email")) {
+          setError("email", {
+            type: "manual",
+            message: error.data.message,
+          });
+        } else {
+          Alert.alert("Registration Failed", error.data.message);
+        }
+      } else if (error?.status === 400) {
+        Alert.alert(
+          "Registration Failed",
+          "Please check your information and try again."
+        );
+      } else if (error?.status === 500) {
+        Alert.alert(
+          "Server Error",
+          "Something went wrong on our end. Please try again later."
+        );
+      } else {
+        Alert.alert(
+          "Registration Failed",
+          "An unexpected error occurred. Please try again."
+        );
+      }
     }
   };
 
@@ -194,13 +240,13 @@ export default function SignupPage() {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                (!isValid || isSubmitting) && styles.primaryButtonDisabled,
+                (!isValid || isRegistering) && styles.primaryButtonDisabled,
               ]}
               onPress={handleSubmit(onSubmit)}
-              disabled={!isValid || isSubmitting}
+              disabled={!isValid || isRegistering}
             >
               <Text style={styles.primaryButtonText}>
-                {isSubmitting ? "Creating Account..." : "Create Account"}
+                {isRegistering ? "Creating Account..." : "Create Account"}
               </Text>
             </TouchableOpacity>
 
