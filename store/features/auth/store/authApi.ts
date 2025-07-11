@@ -1,5 +1,6 @@
 import { baseApi } from "@/services/api/baseApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearAuth, setUser } from "./authSlice";
 
 export interface User {
   id: number;
@@ -34,11 +35,13 @@ export const authApi = baseApi.injectEndpoints({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled;     
+          const { data } = await queryFulfilled;
           // Store tokens in AsyncStorage
           await AsyncStorage.setItem("access_token", data.accessToken);
           await AsyncStorage.setItem("refresh_token", data.refreshToken);
           await AsyncStorage.setItem("user", JSON.stringify(data.user));
+          // Update Redux state
+          dispatch(setUser(data.user));
         } catch (error) {
           console.error("Login failed:", error);
         }
@@ -56,9 +59,11 @@ export const authApi = baseApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           // Store tokens in AsyncStorage
-          // await AsyncStorage.setItem("access_token", data.token);
+          // await AsyncStorage.setItem("access_token", data.accessToken);
           // await AsyncStorage.setItem("refresh_token", data.refreshToken);
           // await AsyncStorage.setItem("user", JSON.stringify(data.user));
+          // Update Redux state
+          // dispatch(setUser(data.user));
         } catch (error) {
           console.error("Registration failed:", error);
         }
@@ -77,12 +82,13 @@ export const authApi = baseApi.injectEndpoints({
         } catch (error) {
           console.error("Logout API failed:", error);
         } finally {
-          // Always clear local storage
+          // Always clear local storage and Redux state
           await AsyncStorage.multiRemove([
             "access_token",
             "refresh_token",
             "user",
           ]);
+          dispatch(clearAuth());
         }
       },
       invalidatesTags: ["Auth", "Task", "Category"], // Clear all cache on logout
@@ -106,12 +112,42 @@ export const authApi = baseApi.injectEndpoints({
               "refresh_token",
               "user",
             ]);
+            dispatch(clearAuth());
           }
         },
       }
     ),
   }),
 });
+
+// Utility function to check and restore authentication state
+export const validateStoredAuth = async (dispatch: any) => {
+  try {
+    const [userData, accessToken, refreshToken] = await Promise.all([
+      AsyncStorage.getItem("user"),
+      AsyncStorage.getItem("access_token"),
+      AsyncStorage.getItem("refresh_token"),
+    ]);
+
+    if (userData && accessToken) {
+      // Parse user data and set auth state
+      const user = JSON.parse(userData);
+      dispatch(setUser(user));
+      return true;
+    } else {
+      // Clear any partial data and set unauthenticated state
+      await AsyncStorage.multiRemove(["access_token", "refresh_token", "user"]);
+      dispatch(clearAuth());
+      return false;
+    }
+  } catch (error) {
+    console.error("Auth validation failed:", error);
+    // Clear everything on error
+    await AsyncStorage.multiRemove(["access_token", "refresh_token", "user"]);
+    dispatch(clearAuth());
+    return false;
+  }
+};
 
 export const {
   useLoginMutation,

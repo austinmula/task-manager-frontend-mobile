@@ -15,16 +15,31 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAuthStatus();
+
+    // Fallback timeout to prevent infinite loading
+    const fallbackTimeout = setTimeout(() => {
+      dispatch(clearAuth());
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(fallbackTimeout);
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const userData = await AsyncStorage.getItem("user");
-      const token = await AsyncStorage.getItem("access_token");
+      const [userData, accessToken] = await Promise.all([
+        AsyncStorage.getItem("user"),
+        AsyncStorage.getItem("access_token"),
+      ]);
 
-      if (userData && token) {
-        dispatch(setUser(JSON.parse(userData)));
+      if (userData && accessToken) {
+        const user = JSON.parse(userData);
+        dispatch(setUser(user));
       } else {
+        await AsyncStorage.multiRemove([
+          "access_token",
+          "refresh_token",
+          "user",
+        ]);
         dispatch(clearAuth());
       }
     } catch (error) {
@@ -35,8 +50,17 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
   if (!isInitialized) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <Text style={{ color: colors.textPrimary, fontSize: 16 }}>
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -45,6 +69,8 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
   // Custom Toast configuration
   const toastConfig = {
     success: (props: any) => (
@@ -89,9 +115,14 @@ function RootLayoutNav() {
 
   return (
     <AuthChecker>
-      <Stack>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          // Authenticated routes
+          <Stack.Screen name="(tabs)" />
+        ) : (
+          // Unauthenticated routes
+          <Stack.Screen name="(auth)" />
+        )}
       </Stack>
       <Toast config={toastConfig} />
     </AuthChecker>
