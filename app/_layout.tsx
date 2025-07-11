@@ -12,13 +12,16 @@ import { store } from "../store";
 function AuthChecker({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const { isInitialized } = useAppSelector((state) => state.auth);
-
   useEffect(() => {
     checkAuthStatus();
 
-    // Fallback timeout to prevent infinite loading
+    // Fallback timeout to prevent infinite loading ONLY if not initialized
     const fallbackTimeout = setTimeout(() => {
-      dispatch(clearAuth());
+      const currentState = store.getState().auth;
+      if (!currentState.isInitialized) {
+        console.log("Auth initialization timeout, clearing auth");
+        dispatch(clearAuth());
+      }
     }, 5000); // 5 second timeout
 
     return () => clearTimeout(fallbackTimeout);
