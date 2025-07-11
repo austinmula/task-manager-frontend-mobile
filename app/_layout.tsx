@@ -1,10 +1,11 @@
-import React from "react";
+import colors from "@/constants/AppColors";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppSelector";
 import { clearAuth, setUser } from "@/store/features/auth/store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Text, View } from "react-native";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 import { Provider } from "react-redux";
 import { store } from "../store";
 
@@ -44,12 +45,55 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  // Custom Toast configuration
+  const toastConfig = {
+    success: (props: any) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: colors.success,
+          backgroundColor: colors.surface,
+        }}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+    error: (props: any) => (
+      <ErrorToast
+        {...props}
+        style={{
+          borderLeftColor: colors.error,
+          backgroundColor: colors.surface,
+        }}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+  };
+
   return (
     <AuthChecker>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      <Toast config={toastConfig} />
     </AuthChecker>
   );
 }

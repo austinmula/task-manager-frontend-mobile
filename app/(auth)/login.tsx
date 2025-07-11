@@ -119,7 +119,7 @@ export default function Index() {
             </TouchableOpacity>
 
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account? </Text>
+              <Text style={styles.signupText}>Don&apos;t have an account? </Text>
               <TouchableOpacity onPress={goToRegister}>
                 <Text style={styles.signupLink}>Sign Up</Text>
               </TouchableOpacity>

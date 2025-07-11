@@ -4,7 +4,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import * as yup from "yup";
 
 // Define validation schema
@@ -63,16 +63,17 @@ export default function SignupPage() {
       }).unwrap();
 
       // Registration successful
-      Alert.alert(
-        "Success!",
-        "Account created successfully. Welcome to Procrastinator!",
-        [
-          {
-            text: "Continue",
-            onPress: () => router.replace("/(tabs)/home"),
-          },
-        ]
-      );
+      Toast.show({
+        type: "success",
+        text1: "Success! 🎉",
+        text2: "Account created successfully. Welcome to Procrastinator!",
+        visibilityTime: 3000,
+      });
+
+      // Navigate after a short delay to let user see the success message
+      setTimeout(() => {
+        router.replace("/(tabs)/home");
+      }, 1500);
     } catch (error: any) {
       console.error("Registration error:", error);
 
@@ -84,24 +85,41 @@ export default function SignupPage() {
             type: "manual",
             message: error.data.message,
           });
+          Toast.show({
+            type: "error",
+            text1: "Email Error",
+            text2: error.data.message,
+            visibilityTime: 4000,
+          });
         } else {
-          Alert.alert("Registration Failed", error.data.message);
+          Toast.show({
+            type: "error",
+            text1: "Registration Failed",
+            text2: error.data.message,
+            visibilityTime: 4000,
+          });
         }
       } else if (error?.status === 400) {
-        Alert.alert(
-          "Registration Failed",
-          "Please check your information and try again."
-        );
+        Toast.show({
+          type: "error",
+          text1: "Registration Failed",
+          text2: "Please check your information and try again.",
+          visibilityTime: 4000,
+        });
       } else if (error?.status === 500) {
-        Alert.alert(
-          "Server Error",
-          "Something went wrong on our end. Please try again later."
-        );
+        Toast.show({
+          type: "error",
+          text1: "Server Error",
+          text2: "Something went wrong on our end. Please try again later.",
+          visibilityTime: 4000,
+        });
       } else {
-        Alert.alert(
-          "Registration Failed",
-          "An unexpected error occurred. Please try again."
-        );
+        Toast.show({
+          type: "error",
+          text1: "Registration Failed",
+          text2: "An unexpected error occurred. Please try again.",
+          visibilityTime: 4000,
+        });
       }
     }
   };
