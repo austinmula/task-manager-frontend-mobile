@@ -1,29 +1,48 @@
-import React from "react";
+import colors from "@/constants/AppColors";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppSelector";
 import { clearAuth, setUser } from "@/store/features/auth/store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Text, View } from "react-native";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 import { Provider } from "react-redux";
 import { store } from "../store";
 
 function AuthChecker({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const { isInitialized } = useAppSelector((state) => state.auth);
-
   useEffect(() => {
     checkAuthStatus();
+
+    // Fallback timeout to prevent infinite loading ONLY if not initialized
+    const fallbackTimeout = setTimeout(() => {
+      const currentState = store.getState().auth;
+      if (!currentState.isInitialized) {
+        console.log("Auth initialization timeout, clearing auth");
+        dispatch(clearAuth());
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(fallbackTimeout);
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const userData = await AsyncStorage.getItem("user");
-      const token = await AsyncStorage.getItem("access_token");
+      const [userData, accessToken] = await Promise.all([
+        AsyncStorage.getItem("user"),
+        AsyncStorage.getItem("access_token"),
+      ]);
 
-      if (userData && token) {
-        dispatch(setUser(JSON.parse(userData)));
+      if (userData && accessToken) {
+        const user = JSON.parse(userData);
+        dispatch(setUser(user));
       } else {
+        await AsyncStorage.multiRemove([
+          "access_token",
+          "refresh_token",
+          "user",
+        ]);
         dispatch(clearAuth());
       }
     } catch (error) {
@@ -34,8 +53,17 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
   if (!isInitialized) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <Text style={{ color: colors.textPrimary, fontSize: 16 }}>
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -44,12 +72,62 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayoutNav() {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // Custom Toast configuration
+  const toastConfig = {
+    success: (props: any) => (
+      <BaseToast
+        {...props}
+        style={{
+          borderLeftColor: colors.success,
+          backgroundColor: colors.surface,
+        }}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+    error: (props: any) => (
+      <ErrorToast
+        {...props}
+        style={{
+          borderLeftColor: colors.error,
+          backgroundColor: colors.surface,
+        }}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        text1Style={{
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        }}
+        text2Style={{
+          fontSize: 14,
+          color: colors.textSecondary,
+        }}
+      />
+    ),
+  };
+
   return (
     <AuthChecker>
-      <Stack>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          // Authenticated routes
+          <Stack.Screen name="(tabs)" />
+        ) : (
+          // Unauthenticated routes
+          <Stack.Screen name="(auth)" />
+        )}
       </Stack>
+      <Toast config={toastConfig} />
     </AuthChecker>
   );
 }
