@@ -56,9 +56,9 @@ export const authApi = baseApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           // Store tokens in AsyncStorage
-          await AsyncStorage.setItem("access_token", data.token);
-          await AsyncStorage.setItem("refresh_token", data.refreshToken);
-          await AsyncStorage.setItem("user", JSON.stringify(data.user));
+          // await AsyncStorage.setItem("access_token", data.token);
+          // await AsyncStorage.setItem("refresh_token", data.refreshToken);
+          // await AsyncStorage.setItem("user", JSON.stringify(data.user));
         } catch (error) {
           console.error("Registration failed:", error);
         }
