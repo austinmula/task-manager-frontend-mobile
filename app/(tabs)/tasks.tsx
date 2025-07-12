@@ -14,6 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import * as yup from "yup";
@@ -27,8 +28,12 @@ import {
   useGetTasksQuery,
   useUpdateTaskMutation,
 } from "../../store/features/tasks/store/taskApi";
+import {
+  useGetCategoriesQuery,
+  Category,
+} from "../../store/features/categories/store/categoriesApi";
 
-type FilterType = "all" | "pending" | "in_progress" | "completed";
+type FilterType = "all" | "pending" | "in_progress" | "completed" | "category";
 
 interface TaskFormData {
   title: string;
@@ -49,17 +54,24 @@ const taskSchema = yup.object({
     .string()
     .oneOf(["pending", "in_progress", "completed", "cancelled"])
     .required(),
-  category_id: yup.number().optional(),
+  category_id: yup.number().required("Category is required"),
 });
 
 export default function TaskScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Build filters based on active filter
-  const filters = activeFilter === "all" ? {} : { status: activeFilter };
+  const filters: any = {};
+  if (activeFilter !== "all" && activeFilter !== "category") {
+    filters.status = activeFilter;
+  }
+  if (activeFilter === "category" && activeCategoryFilter) {
+    filters.category_id = activeCategoryFilter;
+  }
 
   const {
     data: tasksResponse,
@@ -67,6 +79,11 @@ export default function TaskScreen() {
     isLoading,
     refetch,
   } = useGetTasksQuery(filters);
+
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading,
+  } = useGetCategoriesQuery();
 
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
@@ -84,7 +101,7 @@ export default function TaskScreen() {
       description: "",
       due_date: "",
       status: "pending",
-      category_id: undefined,
+      category_id: categories.length > 0 ? categories[0].id : undefined,
     },
   });
 
@@ -116,6 +133,14 @@ export default function TaskScreen() {
 
   const handleFilterChange = (filter: FilterType) => {
     setActiveFilter(filter);
+    if (filter !== "category") {
+      setActiveCategoryFilter(null);
+    }
+  };
+
+  const handleCategoryFilter = (categoryId: number) => {
+    setActiveFilter("category");
+    setActiveCategoryFilter(categoryId);
   };
 
   const openCreateModal = () => {
@@ -125,7 +150,7 @@ export default function TaskScreen() {
       description: "",
       due_date: "",
       status: "pending",
-      category_id: undefined,
+      category_id: categories.length > 0 ? categories[0].id : undefined,
     });
     setIsModalVisible(true);
   };
@@ -215,6 +240,16 @@ export default function TaskScreen() {
               {task.status.replace("_", " ")}
             </Text>
           </View>
+          {task.category && (
+            <View
+              style={[
+                styles.categoryBadge,
+                { backgroundColor: task.category.color },
+              ]}
+            >
+              <Text style={styles.categoryText}>{task.category.name}</Text>
+            </View>
+          )}
           {task.due_date && (
             <Text style={styles.dueDate}>
               Due: {new Date(task.due_date).toLocaleDateString()}
@@ -294,6 +329,35 @@ export default function TaskScreen() {
             )
           )}
         </View>
+
+        {/* Category Filter */}
+        {!isCategoriesLoading && categories.length > 0 && (
+          <View style={styles.categoriesSection}>
+            <Text style={styles.sectionTitle}>Filter by Category:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryFilter,
+                    { backgroundColor: category.color },
+                    activeCategoryFilter === category.id && styles.categoryFilterActive,
+                  ]}
+                  onPress={() => handleCategoryFilter(category.id)}
+                >
+                  <Text style={styles.categoryFilterText}>{category.name}</Text>
+                  {category._count && (
+                    <Text style={styles.categoryCount}>({category._count.tasks})</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Loading State */}
         {isLoading && (
@@ -449,6 +513,40 @@ export default function TaskScreen() {
                     </View>
                   )}
                 />
+              </View>
+
+              {/* Category Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Category *</Text>
+                <Controller
+                  control={control}
+                  name="category_id"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={styles.categorySelection}>
+                      {categories.map((category) => (
+                        <Pressable
+                          key={category.id}
+                          style={[
+                            styles.categorySelectButton,
+                            { backgroundColor: category.color },
+                            value === category.id && styles.categorySelectButtonActive,
+                          ]}
+                          onPress={() => onChange(category.id)}
+                        >
+                          <Text style={styles.categorySelectText}>
+                            {category.name}
+                          </Text>
+                          {value === category.id && (
+                            <Ionicons name="checkmark" size={16} color={colors.white} />
+                          )}
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                />
+                {errors.category_id && (
+                  <Text style={styles.errorText}>{errors.category_id.message}</Text>
+                )}
               </View>
 
               {/* Due Date Input */}
@@ -756,6 +854,76 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   statusButtonTextActive: {
+    color: colors.white,
+  },
+  // Category Styles
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: colors.white,
+    fontWeight: "500",
+  },
+  categoriesSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  categoriesContainer: {
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  categoryFilter: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    opacity: 0.8,
+  },
+  categoryFilterActive: {
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.white,
+  },
+  categoryCount: {
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  categorySelection: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categorySelectButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    opacity: 0.8,
+  },
+  categorySelectButtonActive: {
+    opacity: 1,
+    transform: [{ scale: 1.05 }],
+  },
+  categorySelectText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: colors.white,
   },
 });

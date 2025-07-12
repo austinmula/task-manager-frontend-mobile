@@ -60,6 +60,21 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="categories"
+        options={{
+          title: "Categories",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "color-palette" : "color-palette-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+          headerTitle: "Categories",
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
