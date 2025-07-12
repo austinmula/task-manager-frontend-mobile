@@ -30,16 +30,31 @@ const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  console.log("🔍 Making API request:", typeof args === 'string' ? args : args.url);
+  
   let result = await baseQuery(args, api, extraOptions);
+  
+  console.log("🔍 API response status:", result?.error?.status || 'success');
 
   if (result?.error?.status === 401) {
-    console.log("Token expired, attempting refresh...");
+    console.log("🔄 Token expired, attempting refresh...");
 
     // Try to refresh the token
     const refreshToken = await AsyncStorage.getItem("refresh_token");
 
     if (refreshToken) {
-      const refreshResult = await baseQuery(
+      console.log("📝 Found refresh token, making refresh request...");
+      
+      // Create a fresh base query without the expired token for the refresh request
+      const refreshBaseQuery = fetchBaseQuery({
+        baseUrl: API_BASE_URL,
+        prepareHeaders: (headers) => {
+          headers.set("content-type", "application/json");
+          return headers;
+        },
+      });
+      
+      const refreshResult = await refreshBaseQuery(
         {
           url: "/auth/refresh",
           method: "POST",
@@ -49,26 +64,86 @@ const baseQueryWithReauth: BaseQueryFn<
         extraOptions
       );
 
-      if (refreshResult?.data) {
-        // Store the new token
-        const newTokenData = refreshResult.data as { token: string };
-        await AsyncStorage.setItem("access_token", newTokenData.token);
+      console.log("🔄 Refresh request result:", refreshResult);
 
-        // Retry the original request with new token
-        result = await baseQuery(args, api, extraOptions);
+      if (refreshResult?.data) {
+        console.log("✅ Token refresh successful", refreshResult.data);
+        
+        // Handle different possible response formats
+        const refreshData = refreshResult.data as any;
+        const newAccessToken = refreshData.accessToken || refreshData.token || refreshData.access_token;
+        const newRefreshToken = refreshData.refreshToken || refreshData.refresh_token;
+        
+        if (newAccessToken) {
+          // Store the new tokens
+          await AsyncStorage.setItem("access_token", newAccessToken);
+          if (newRefreshToken) {
+            await AsyncStorage.setItem("refresh_token", newRefreshToken);
+          }
+          console.log("💾 New token(s) stored, retrying original request...");
+
+          // Update Redux state if we have user info in the response
+          if (refreshData.user) {
+            const { setUser } = await import("../../store/features/auth/store/authSlice");
+            api.dispatch(setUser(refreshData.user));
+          }
+
+          // Create a new base query instance with the updated token for the retry
+          const retryBaseQuery = fetchBaseQuery({
+            baseUrl: API_BASE_URL,
+            prepareHeaders: async (headers) => {
+              headers.set("authorization", `Bearer ${newAccessToken}`);
+              headers.set("content-type", "application/json");
+              return headers;
+            },
+          });
+
+          // Retry the original request with new token
+          console.log("🔄 Retrying original request with new token...");
+          result = await retryBaseQuery(args, api, extraOptions);
+          
+          if (!result.error) {
+            console.log("✅ Original request succeeded with new token");
+          } else {
+            console.error("❌ Original request still failed after refresh:", result.error);
+          }
+        } else {
+          console.error("❌ No token in refresh response:", refreshData);
+          await clearAuthAndRedirect(api);
+        }
       } else {
-        // Refresh failed, clear everything
-        await AsyncStorage.multiRemove([
-          "access_token",
-          "refresh_token",
-          "user",
-        ]);
-        // You could also dispatch a logout action here if needed
+        console.error("❌ Token refresh failed:", refreshResult.error);
+        await clearAuthAndRedirect(api);
       }
+    } else {
+      console.log("❌ No refresh token found, clearing auth");
+      await clearAuthAndRedirect(api);
     }
   }
 
   return result;
+};
+
+// Helper function to clear auth and redirect
+const clearAuthAndRedirect = async (api: any) => {
+  console.log("🧹 Clearing authentication data...");
+  
+  try {
+    // Clear all auth-related data
+    await AsyncStorage.multiRemove([
+      "access_token",
+      "refresh_token",
+      "user",
+    ]);
+    
+    // Import and dispatch logout action
+    const { clearAuth } = await import("../../store/features/auth/store/authSlice");
+    api.dispatch(clearAuth());
+    
+    console.log("✅ Auth data cleared and user logged out");
+  } catch (error) {
+    console.error("❌ Error clearing auth data:", error);
+  }
 };
 
 export const baseApi = createApi({
