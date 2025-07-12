@@ -1,6 +1,10 @@
 import { baseApi } from "@/services/api/baseApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { clearAuth, setUser } from "./authSlice";
+
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
 
 export interface User {
   id: number;
@@ -75,14 +79,48 @@ export const authApi = baseApi.injectEndpoints({
       query: () => ({
         url: "/auth/logout",
         method: "POST",
+        body: {}, // Default empty body
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
         try {
-          await queryFulfilled;
+          // Get refresh token and make a manual logout request
+          const refreshToken = await AsyncStorage.getItem("refresh_token");
+
+          if (refreshToken) {
+            // Make a proper logout request with refresh token
+            const accessToken = await AsyncStorage.getItem("access_token");
+
+            try {
+              const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(accessToken && {
+                    Authorization: `Bearer ${accessToken}`,
+                  }),
+                },
+                body: JSON.stringify({ refreshToken }),
+              });
+
+              if (response.ok) {
+                console.log("✅ Logout API call successful");
+              } else {
+                console.error(
+                  "❌ Logout API failed with status:",
+                  response.status
+                );
+              }
+            } catch (fetchError) {
+              console.error("❌ Logout fetch error:", fetchError);
+            }
+          } else {
+            console.log("⚠️ No refresh token found for logout");
+          }
         } catch (error) {
-          console.error("Logout API failed:", error);
+          console.error("❌ Logout process failed:", error);
         } finally {
-          // Always clear local storage and Redux state
+          // Always clear local storage and Redux state regardless of API result
+          console.log("🧹 Clearing local auth data...");
           await AsyncStorage.multiRemove([
             "access_token",
             "refresh_token",
@@ -94,29 +132,54 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ["Auth", "Task", "Category"], // Clear all cache on logout
     }),
 
-    refreshToken: builder.mutation<{ token: string }, { refreshToken: string }>(
+    refreshToken: builder.mutation<
       {
-        query: (body) => ({
-          url: "/auth/refresh",
-          method: "POST",
-          body,
-        }),
-        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-          try {
-            const { data } = await queryFulfilled;
-            await AsyncStorage.setItem("access_token", data.token);
-          } catch (error) {
-            // If refresh fails, clear everything
-            await AsyncStorage.multiRemove([
-              "access_token",
-              "refresh_token",
-              "user",
-            ]);
-            dispatch(clearAuth());
+        token?: string;
+        accessToken?: string;
+        user?: User;
+        refreshToken?: string;
+      },
+      { refreshToken: string }
+    >({
+      query: (body) => ({
+        url: "/auth/refresh",
+        method: "POST",
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          console.log("🔄 Refresh endpoint response:", data);
+
+          const newAccessToken = data.accessToken || data.token;
+          const newRefreshToken = data.refreshToken;
+
+          if (newAccessToken) {
+            await AsyncStorage.setItem("access_token", newAccessToken);
+            if (newRefreshToken) {
+              await AsyncStorage.setItem("refresh_token", newRefreshToken);
+            }
+
+            // Update user in Redux if provided
+            if (data.user) {
+              await AsyncStorage.setItem("user", JSON.stringify(data.user));
+              dispatch(setUser(data.user));
+            }
+
+            console.log("✅ Auth API refresh successful");
           }
-        },
-      }
-    ),
+        } catch (error) {
+          console.error("❌ Auth API refresh failed:", error);
+          // If refresh fails, clear everything
+          await AsyncStorage.multiRemove([
+            "access_token",
+            "refresh_token",
+            "user",
+          ]);
+          dispatch(clearAuth());
+        }
+      },
+    }),
   }),
 });
 

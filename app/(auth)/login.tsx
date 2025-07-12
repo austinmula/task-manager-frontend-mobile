@@ -62,7 +62,7 @@ export default function Index() {
 
       // Navigate after a short delay to let user see the success message
       setTimeout(() => {
-        router.replace("/(tabs)/home");
+        router.replace("/(tabs)/tasks");
       }, 1000);
     } catch (error: any) {
       console.error("Login error:", error);

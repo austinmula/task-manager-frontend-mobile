@@ -72,7 +72,7 @@ export default function SignupPage() {
 
       // Navigate after a short delay to let user see the success message
       setTimeout(() => {
-        router.replace("/(tabs)/home");
+        router.replace("/login");
       }, 1500);
     } catch (error: any) {
       console.error("Registration error:", error);
