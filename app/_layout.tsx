@@ -3,11 +3,14 @@ import { useAppDispatch, useAppSelector } from "@/hooks/useAppSelector";
 import { clearAuth, setUser } from "@/store/features/auth/store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
+import Constants from "expo-constants";
 import React, { useEffect } from "react";
 import { Text, View } from "react-native";
 import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 import { Provider } from "react-redux";
 import { store } from "../store";
+
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
 
 function AuthChecker({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -43,19 +46,13 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
         // Test if the current token is still valid by making a simple API call
         try {
-          const response = await fetch(
-            `${
-              process.env.EXPO_PUBLIC_API_URL ||
-              "http://192.168.100.20:3000/api"
-            }/auth/profile`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+          const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          });
 
           if (response.ok) {
             console.log("✅ Token is valid, setting user state");
