@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -9,16 +9,18 @@ import {
   Pressable,
   RefreshControl,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import * as yup from "yup";
 import colors from "../../constants/AppColors";
+import { useTokenManager } from "../../hooks/useTokenManager";
+import { useGetCategoriesQuery } from "../../store/features/categories/store/categoriesApi";
 import {
   CreateTaskRequest,
   Task,
@@ -28,14 +30,13 @@ import {
   useGetTasksQuery,
   useUpdateTaskMutation,
 } from "../../store/features/tasks/store/taskApi";
-import {
-  useGetCategoriesQuery,
-  Category,
-} from "../../store/features/categories/store/categoriesApi";
-import { useTokenManager } from "../../hooks/useTokenManager";
 
 // Debug component to show token status
-const TokenDebugInfo = ({ getTokenInfo }: { getTokenInfo: () => Promise<any> }) => {
+const TokenDebugInfo = ({
+  getTokenInfo,
+}: {
+  getTokenInfo: () => Promise<any>;
+}) => {
   const [tokenInfo, setTokenInfo] = useState<any>(null);
 
   useEffect(() => {
@@ -44,21 +45,22 @@ const TokenDebugInfo = ({ getTokenInfo }: { getTokenInfo: () => Promise<any> }) 
       setTokenInfo(info);
     };
     loadTokenInfo();
-    
+
     // Refresh token info every 5 seconds
     const interval = setInterval(loadTokenInfo, 5000);
     return () => clearInterval(interval);
   }, [getTokenInfo]);
 
-  if (!tokenInfo) return <Text style={styles.debugText}>Loading token info...</Text>;
+  if (!tokenInfo)
+    return <Text style={styles.debugText}>Loading token info...</Text>;
 
   return (
     <View>
       <Text style={styles.debugText}>
-        Access Token: {tokenInfo.hasAccessToken ? '✅' : '❌'}
+        Access Token: {tokenInfo.hasAccessToken ? "✅" : "❌"}
       </Text>
       <Text style={styles.debugText}>
-        Refresh Token: {tokenInfo.hasRefreshToken ? '✅' : '❌'}
+        Refresh Token: {tokenInfo.hasRefreshToken ? "✅" : "❌"}
       </Text>
       {tokenInfo.accessTokenExpiry && (
         <Text style={styles.debugText}>
@@ -66,7 +68,7 @@ const TokenDebugInfo = ({ getTokenInfo }: { getTokenInfo: () => Promise<any> }) 
         </Text>
       )}
       <Text style={styles.debugText}>
-        Status: {tokenInfo.isExpired ? '❌ Expired' : '✅ Valid'}
+        Status: {tokenInfo.isExpired ? "❌ Expired" : "✅ Valid"}
       </Text>
       <Text style={styles.debugText}>
         Last Check: {new Date().toLocaleTimeString()}
@@ -77,26 +79,27 @@ const TokenDebugInfo = ({ getTokenInfo }: { getTokenInfo: () => Promise<any> }) 
 
 // Test function to validate token refresh flow
 const useTokenRefreshTest = () => {
-  const { validateCurrentToken, manualRefreshToken, getTokenInfo } = useTokenManager();
-  
+  const { validateCurrentToken, manualRefreshToken, getTokenInfo } =
+    useTokenManager();
+
   const testTokenRefreshFlow = async () => {
     console.log("🧪 Starting token refresh flow test...");
-    
+
     try {
       // Step 1: Check current token info
       const tokenInfo = await getTokenInfo();
       console.log("🧪 Current token info:", tokenInfo);
-      
+
       // Step 2: Validate current token
       const isValid = await validateCurrentToken();
       console.log("🧪 Current token is valid:", isValid);
-      
+
       // Step 3: If token is expired or will expire soon, test refresh
       if (tokenInfo.isExpired || !isValid) {
         console.log("🧪 Token is expired, testing refresh...");
         const refreshSuccess = await manualRefreshToken();
         console.log("🧪 Refresh result:", refreshSuccess);
-        
+
         if (refreshSuccess) {
           // Step 4: Validate the new token
           const newTokenValid = await validateCurrentToken();
@@ -105,22 +108,22 @@ const useTokenRefreshTest = () => {
       } else {
         console.log("🧪 Token is still valid, refresh test skipped");
       }
-      
+
       Toast.show({
-        type: 'info',
-        text1: 'Token Test Complete',
-        text2: 'Check console for detailed results',
+        type: "info",
+        text1: "Token Test Complete",
+        text2: "Check console for detailed results",
       });
     } catch (error) {
       console.error("🧪 Token refresh test failed:", error);
       Toast.show({
-        type: 'error',
-        text1: 'Token Test Failed',
-        text2: 'Check console for error details',
+        type: "error",
+        text1: "Token Test Failed",
+        text2: "Check console for error details",
       });
     }
   };
-  
+
   return { testTokenRefreshFlow };
 };
 
@@ -150,13 +153,19 @@ const taskSchema = yup.object({
 
 export default function TaskScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState<number | null>(null);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<
+    number | null
+  >(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showTokenDebug, setShowTokenDebug] = useState(false);
 
-  const { manualRefreshToken, getTokenInfo, isRefreshing: isTokenRefreshing } = useTokenManager();
+  const {
+    manualRefreshToken,
+    getTokenInfo,
+    isRefreshing: isTokenRefreshing,
+  } = useTokenManager();
   const { testTokenRefreshFlow } = useTokenRefreshTest();
 
   // Build filters based on active filter
@@ -184,16 +193,14 @@ export default function TaskScreen() {
   useEffect(() => {
     if (error) {
       console.log("📋 Tasks API Error:", error);
-      if ('status' in error && error.status === 401) {
+      if ("status" in error && error.status === 401) {
         console.log("🔑 Unauthorized error in tasks - token may have expired");
       }
     }
   }, [error]);
 
-  const {
-    data: categories = [],
-    isLoading: isCategoriesLoading,
-  } = useGetCategoriesQuery();
+  const { data: categories = [], isLoading: isCategoriesLoading } =
+    useGetCategoriesQuery();
 
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
@@ -407,7 +414,7 @@ export default function TaskScreen() {
       <View style={styles.container}>
         {/* Header with Add Button */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.debugButton}
             onPress={() => setShowTokenDebug(!showTokenDebug)}
           >
@@ -425,22 +432,23 @@ export default function TaskScreen() {
             <Text style={styles.debugTitle}>🔧 Token Debug</Text>
             <TokenDebugInfo getTokenInfo={getTokenInfo} />
             <View style={styles.debugButtonsRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.refreshTokenButton, { flex: 1, marginRight: 8 }]}
                 onPress={manualRefreshToken}
                 disabled={isTokenRefreshing}
               >
                 <Text style={styles.refreshTokenText}>
-                  {isTokenRefreshing ? 'Refreshing...' : 'Manual Refresh'}
+                  {isTokenRefreshing ? "Refreshing..." : "Manual Refresh"}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.refreshTokenButton, { flex: 1, backgroundColor: colors.warning }]}
+              <TouchableOpacity
+                style={[
+                  styles.refreshTokenButton,
+                  { flex: 1, backgroundColor: colors.warning },
+                ]}
                 onPress={testTokenRefreshFlow}
               >
-                <Text style={styles.refreshTokenText}>
-                  Test Flow
-                </Text>
+                <Text style={styles.refreshTokenText}>Test Flow</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -488,13 +496,16 @@ export default function TaskScreen() {
                   style={[
                     styles.categoryFilter,
                     { backgroundColor: category.color },
-                    activeCategoryFilter === category.id && styles.categoryFilterActive,
+                    activeCategoryFilter === category.id &&
+                      styles.categoryFilterActive,
                   ]}
                   onPress={() => handleCategoryFilter(category.id)}
                 >
                   <Text style={styles.categoryFilterText}>{category.name}</Text>
                   {category._count && (
-                    <Text style={styles.categoryCount}>({category._count.tasks})</Text>
+                    <Text style={styles.categoryCount}>
+                      ({category._count.tasks})
+                    </Text>
                   )}
                 </TouchableOpacity>
               ))}
@@ -672,7 +683,8 @@ export default function TaskScreen() {
                           style={[
                             styles.categorySelectButton,
                             { backgroundColor: category.color },
-                            value === category.id && styles.categorySelectButtonActive,
+                            value === category.id &&
+                              styles.categorySelectButtonActive,
                           ]}
                           onPress={() => onChange(category.id)}
                         >
@@ -680,7 +692,11 @@ export default function TaskScreen() {
                             {category.name}
                           </Text>
                           {value === category.id && (
-                            <Ionicons name="checkmark" size={16} color={colors.white} />
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color={colors.white}
+                            />
                           )}
                         </Pressable>
                       ))}
@@ -688,7 +704,9 @@ export default function TaskScreen() {
                   )}
                 />
                 {errors.category_id && (
-                  <Text style={styles.errorText}>{errors.category_id.message}</Text>
+                  <Text style={styles.errorText}>
+                    {errors.category_id.message}
+                  </Text>
                 )}
               </View>
 
@@ -1093,7 +1111,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 4,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   refreshTokenButton: {
     backgroundColor: colors.primary,
@@ -1101,15 +1119,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginTop: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   refreshTokenText: {
     color: colors.white,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   debugButtonsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 12,
   },
 });

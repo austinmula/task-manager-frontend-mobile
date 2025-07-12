@@ -30,7 +30,7 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
   const checkAuthStatus = async () => {
     try {
       console.log("🔍 Checking authentication status...");
-      
+
       const [userData, accessToken, refreshToken] = await Promise.all([
         AsyncStorage.getItem("user"),
         AsyncStorage.getItem("access_token"),
@@ -40,22 +40,30 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
       if (userData && accessToken) {
         console.log("📱 Found stored auth data, validating...");
         const user = JSON.parse(userData);
-        
+
         // Test if the current token is still valid by making a simple API call
         try {
-          const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.100.20:3000/api'}/auth/profile`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await fetch(
+            `${
+              process.env.EXPO_PUBLIC_API_URL ||
+              "http://192.168.100.20:3000/api"
+            }/auth/profile`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
           if (response.ok) {
             console.log("✅ Token is valid, setting user state");
             dispatch(setUser(user));
           } else if (response.status === 401) {
-            console.log("🔄 Token expired, will attempt refresh on next API call");
+            console.log(
+              "🔄 Token expired, will attempt refresh on next API call"
+            );
             // Don't clear immediately - let the baseQuery handle the refresh
             dispatch(setUser(user));
           } else {
@@ -68,7 +76,9 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
             dispatch(clearAuth());
           }
         } catch (networkError) {
-          console.log("🌐 Network error during token validation, assuming offline");
+          console.log(
+            "🌐 Network error during token validation, assuming offline"
+          );
           // If it's a network error, assume we're offline and keep the user logged in
           dispatch(setUser(user));
         }

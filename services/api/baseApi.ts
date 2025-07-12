@@ -30,11 +30,14 @@ const baseQueryWithReauth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  console.log("🔍 Making API request:", typeof args === 'string' ? args : args.url);
-  
+  console.log(
+    "🔍 Making API request:",
+    typeof args === "string" ? args : args.url
+  );
+
   let result = await baseQuery(args, api, extraOptions);
-  
-  console.log("🔍 API response status:", result?.error?.status || 'success');
+
+  console.log("🔍 API response status:", result?.error?.status || "success");
 
   if (result?.error?.status === 401) {
     console.log("🔄 Token expired, attempting refresh...");
@@ -44,7 +47,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
     if (refreshToken) {
       console.log("📝 Found refresh token, making refresh request...");
-      
+
       // Create a fresh base query without the expired token for the refresh request
       const refreshBaseQuery = fetchBaseQuery({
         baseUrl: API_BASE_URL,
@@ -53,7 +56,7 @@ const baseQueryWithReauth: BaseQueryFn<
           return headers;
         },
       });
-      
+
       const refreshResult = await refreshBaseQuery(
         {
           url: "/auth/refresh",
@@ -68,12 +71,16 @@ const baseQueryWithReauth: BaseQueryFn<
 
       if (refreshResult?.data) {
         console.log("✅ Token refresh successful", refreshResult.data);
-        
+
         // Handle different possible response formats
         const refreshData = refreshResult.data as any;
-        const newAccessToken = refreshData.accessToken || refreshData.token || refreshData.access_token;
-        const newRefreshToken = refreshData.refreshToken || refreshData.refresh_token;
-        
+        const newAccessToken =
+          refreshData.accessToken ||
+          refreshData.token ||
+          refreshData.access_token;
+        const newRefreshToken =
+          refreshData.refreshToken || refreshData.refresh_token;
+
         if (newAccessToken) {
           // Store the new tokens
           await AsyncStorage.setItem("access_token", newAccessToken);
@@ -84,7 +91,9 @@ const baseQueryWithReauth: BaseQueryFn<
 
           // Update Redux state if we have user info in the response
           if (refreshData.user) {
-            const { setUser } = await import("../../store/features/auth/store/authSlice");
+            const { setUser } = await import(
+              "../../store/features/auth/store/authSlice"
+            );
             api.dispatch(setUser(refreshData.user));
           }
 
@@ -101,11 +110,14 @@ const baseQueryWithReauth: BaseQueryFn<
           // Retry the original request with new token
           console.log("🔄 Retrying original request with new token...");
           result = await retryBaseQuery(args, api, extraOptions);
-          
+
           if (!result.error) {
             console.log("✅ Original request succeeded with new token");
           } else {
-            console.error("❌ Original request still failed after refresh:", result.error);
+            console.error(
+              "❌ Original request still failed after refresh:",
+              result.error
+            );
           }
         } else {
           console.error("❌ No token in refresh response:", refreshData);
@@ -127,19 +139,17 @@ const baseQueryWithReauth: BaseQueryFn<
 // Helper function to clear auth and redirect
 const clearAuthAndRedirect = async (api: any) => {
   console.log("🧹 Clearing authentication data...");
-  
+
   try {
     // Clear all auth-related data
-    await AsyncStorage.multiRemove([
-      "access_token",
-      "refresh_token",
-      "user",
-    ]);
-    
+    await AsyncStorage.multiRemove(["access_token", "refresh_token", "user"]);
+
     // Import and dispatch logout action
-    const { clearAuth } = await import("../../store/features/auth/store/authSlice");
+    const { clearAuth } = await import(
+      "../../store/features/auth/store/authSlice"
+    );
     api.dispatch(clearAuth());
-    
+
     console.log("✅ Auth data cleared and user logged out");
   } catch (error) {
     console.error("❌ Error clearing auth data:", error);

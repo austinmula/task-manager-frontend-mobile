@@ -95,7 +95,12 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     refreshToken: builder.mutation<
-      { token?: string; accessToken?: string; user?: User; refreshToken?: string },
+      {
+        token?: string;
+        accessToken?: string;
+        user?: User;
+        refreshToken?: string;
+      },
       { refreshToken: string }
     >({
       query: (body) => ({
@@ -107,22 +112,22 @@ export const authApi = baseApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           console.log("🔄 Refresh endpoint response:", data);
-          
+
           const newAccessToken = data.accessToken || data.token;
           const newRefreshToken = data.refreshToken;
-          
+
           if (newAccessToken) {
             await AsyncStorage.setItem("access_token", newAccessToken);
             if (newRefreshToken) {
               await AsyncStorage.setItem("refresh_token", newRefreshToken);
             }
-            
+
             // Update user in Redux if provided
             if (data.user) {
               await AsyncStorage.setItem("user", JSON.stringify(data.user));
               dispatch(setUser(data.user));
             }
-            
+
             console.log("✅ Auth API refresh successful");
           }
         } catch (error) {

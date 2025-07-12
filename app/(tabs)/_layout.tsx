@@ -29,7 +29,7 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="home"
         options={{
           title: "Home",
@@ -42,7 +42,7 @@ export default function TabLayout() {
           ),
           headerTitle: "Home",
         }}
-      />
+      /> */}
 
       <Tabs.Screen
         name="tasks"

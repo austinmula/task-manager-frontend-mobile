@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   RefreshControl,
@@ -13,19 +14,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import * as yup from "yup";
 import colors from "../../constants/AppColors";
 import {
-  useGetCategoriesQuery,
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
-  useDeleteCategoryMutation,
   Category,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useGetCategoriesQuery,
+  useUpdateCategoryMutation,
 } from "../../store/features/categories/store/categoriesApi";
 
 interface CategoryFormData {
@@ -45,9 +45,21 @@ const categorySchema = yup.object({
 });
 
 const predefinedColors = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FECA57",
-  "#FF9FF3", "#54A0FF", "#5F27CD", "#00D2D3", "#FF9F43",
-  "#FC427B", "#26DE81", "#FD79A8", "#FDCB6E", "#6C5CE7",
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FECA57",
+  "#FF9FF3",
+  "#54A0FF",
+  "#5F27CD",
+  "#00D2D3",
+  "#FF9F43",
+  "#FC427B",
+  "#26DE81",
+  "#FD79A8",
+  "#FDCB6E",
+  "#6C5CE7",
 ];
 
 export default function CategoriesScreen() {
@@ -62,9 +74,12 @@ export default function CategoriesScreen() {
     refetch,
   } = useGetCategoriesQuery();
 
-  const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
-  const [updateCategory, { isLoading: isUpdating }] = useUpdateCategoryMutation();
-  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
+  const [createCategory, { isLoading: isCreating }] =
+    useCreateCategoryMutation();
+  const [updateCategory, { isLoading: isUpdating }] =
+    useUpdateCategoryMutation();
+  const [deleteCategory, { isLoading: isDeleting }] =
+    useDeleteCategoryMutation();
 
   const {
     control,
@@ -185,16 +200,14 @@ export default function CategoriesScreen() {
     <View style={styles.categoryItem}>
       <View style={styles.categoryInfo}>
         <View
-          style={[
-            styles.colorIndicator,
-            { backgroundColor: category.color },
-          ]}
+          style={[styles.colorIndicator, { backgroundColor: category.color }]}
         />
         <View style={styles.categoryDetails}>
           <Text style={styles.categoryName}>{category.name}</Text>
           {category._count && (
             <Text style={styles.taskCount}>
-              {category._count.tasks} task{category._count.tasks !== 1 ? 's' : ''}
+              {category._count.tasks} task
+              {category._count.tasks !== 1 ? "s" : ""}
             </Text>
           )}
         </View>
@@ -262,11 +275,18 @@ export default function CategoriesScreen() {
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.categoriesContent}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+              />
             }
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
-                <Ionicons name="color-palette" size={48} color={colors.textSecondary} />
+                <Ionicons
+                  name="color-palette"
+                  size={48}
+                  color={colors.textSecondary}
+                />
                 <Text style={styles.emptyTitle}>No categories found</Text>
                 <Text style={styles.emptyMessage}>
                   Create your first category to organize your tasks
@@ -294,7 +314,12 @@ export default function CategoriesScreen() {
                 onPress={handleSubmit(onSubmit)}
                 disabled={isCreating || isUpdating}
               >
-                <Text style={[styles.saveButton, (isCreating || isUpdating) && styles.saveButtonDisabled]}>
+                <Text
+                  style={[
+                    styles.saveButton,
+                    (isCreating || isUpdating) && styles.saveButtonDisabled,
+                  ]}
+                >
                   {isCreating || isUpdating ? "Saving..." : "Save"}
                 </Text>
               </TouchableOpacity>
@@ -309,7 +334,10 @@ export default function CategoriesScreen() {
                   name="name"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput
-                      style={[styles.textInput, errors.name && styles.inputError]}
+                      style={[
+                        styles.textInput,
+                        errors.name && styles.inputError,
+                      ]}
                       placeholder="Enter category name"
                       value={value}
                       onChangeText={onChange}
@@ -337,20 +365,29 @@ export default function CategoriesScreen() {
                       onPress={() => setValue("color", color)}
                     >
                       {selectedColor === color && (
-                        <Ionicons name="checkmark" size={20} color={colors.white} />
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={colors.white}
+                        />
                       )}
                     </TouchableOpacity>
                   ))}
                 </View>
-                
+
                 {/* Custom Color Input */}
-                <Text style={styles.customColorLabel}>Or enter custom hex color:</Text>
+                <Text style={styles.customColorLabel}>
+                  Or enter custom hex color:
+                </Text>
                 <Controller
                   control={control}
                   name="color"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput
-                      style={[styles.textInput, errors.color && styles.inputError]}
+                      style={[
+                        styles.textInput,
+                        errors.color && styles.inputError,
+                      ]}
                       placeholder="#FF6B6B"
                       value={value}
                       onChangeText={onChange}
@@ -362,7 +399,7 @@ export default function CategoriesScreen() {
                 {errors.color && (
                   <Text style={styles.errorText}>{errors.color.message}</Text>
                 )}
-                
+
                 {/* Color Preview */}
                 <View style={styles.colorPreview}>
                   <Text style={styles.previewLabel}>Preview:</Text>
