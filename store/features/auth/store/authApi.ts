@@ -3,7 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { clearAuth, setUser } from "./authSlice";
 
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
 
 export interface User {
   id: number;
@@ -84,25 +85,30 @@ export const authApi = baseApi.injectEndpoints({
         try {
           // Get refresh token and make a manual logout request
           const refreshToken = await AsyncStorage.getItem("refresh_token");
-          
+
           if (refreshToken) {
             // Make a proper logout request with refresh token
             const accessToken = await AsyncStorage.getItem("access_token");
-            
+
             try {
               const response = await fetch(`${API_BASE_URL}/auth/logout`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  ...(accessToken && { "Authorization": `Bearer ${accessToken}` }),
+                  ...(accessToken && {
+                    Authorization: `Bearer ${accessToken}`,
+                  }),
                 },
                 body: JSON.stringify({ refreshToken }),
               });
-              
+
               if (response.ok) {
                 console.log("✅ Logout API call successful");
               } else {
-                console.error("❌ Logout API failed with status:", response.status);
+                console.error(
+                  "❌ Logout API failed with status:",
+                  response.status
+                );
               }
             } catch (fetchError) {
               console.error("❌ Logout fetch error:", fetchError);
