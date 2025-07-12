@@ -1,6 +1,6 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import colors from "@/constants/AppColors";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 
 export default function TabLayout() {
   return (
@@ -41,6 +41,21 @@ export default function TabLayout() {
             />
           ),
           headerTitle: "Home",
+        }}
+      />
+
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: "Tasks",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "checkbox" : "checkbox-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+          headerTitle: "My Tasks",
         }}
       />
 
