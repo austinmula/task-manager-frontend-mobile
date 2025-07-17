@@ -4,7 +4,7 @@ import Constants from "expo-constants";
 import { clearAuth, setUser } from "./authSlice";
 
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
 
 export interface User {
   id: number;

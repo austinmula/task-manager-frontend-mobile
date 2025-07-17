@@ -6,7 +6,7 @@ import { clearAuth } from "../store/features/auth/store/authSlice";
 import { useAppDispatch } from "./useAppSelector";
 
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
 
 export const useTokenManager = () => {
   const dispatch = useAppDispatch();
@@ -55,7 +55,7 @@ export const useTokenManager = () => {
       }
 
       const API_BASE_URL =
-        Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+        Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
 
       console.log(
         "📡 Making refresh request to:",
@@ -139,7 +139,7 @@ export const useTokenManager = () => {
       if (!token) return false;
 
       const API_BASE_URL =
-        Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+        Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
 
       const response = await fetch(`${API_BASE_URL}/auth/profile`, {
         method: "GET",

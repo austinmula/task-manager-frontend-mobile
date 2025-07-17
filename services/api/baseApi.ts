@@ -8,7 +8,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Constants from "expo-constants";
 
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
 
 // Base query with automatic token refresh
 const baseQuery = fetchBaseQuery({
@@ -39,7 +39,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
   console.log("🔍 API response status:", result?.error?.status || "success");
 
-  if (result?.error?.status === 401) {
+  if (result?.error?.status === 403) {
     console.log("🔄 Token expired, attempting refresh...");
 
     // Try to refresh the token
