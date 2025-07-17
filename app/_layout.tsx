@@ -11,7 +11,8 @@ import { Provider } from "react-redux";
 import { store } from "../store";
 
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.21:3000/api";
+  Constants.expoConfig?.extra?.apiUrl ||
+  "https://task-manager-app-x13e.onrender.com/api";
 
 function AuthChecker({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
