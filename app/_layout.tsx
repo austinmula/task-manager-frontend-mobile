@@ -11,7 +11,8 @@ import { Provider } from "react-redux";
 import { store } from "../store";
 
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.apiUrl || "http://192.168.100.20:3000/api";
+  Constants.expoConfig?.extra?.apiUrl ||
+  "https://task-manager-app-x13e.onrender.com/api";
 
 function AuthChecker({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -47,7 +48,7 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
 
         // Test if the current token is still valid by making a simple API call
         try {
-          const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -55,10 +56,12 @@ function AuthChecker({ children }: { children: React.ReactNode }) {
             },
           });
 
+          console.log(`🔍 Auth profile response status: ${response.status} `);
+
           if (response.ok) {
             console.log("✅ Token is valid, setting user state");
             dispatch(setUser(user));
-          } else if (response.status === 401) {
+          } else if (response.status === 403) {
             console.log(
               "🔄 Token expired, will attempt refresh on next API call"
             );

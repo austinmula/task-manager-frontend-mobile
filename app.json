@@ -39,7 +39,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://192.168.100.20:3000/api"
+      "apiUrl": "https://task-manager-app-x13e.onrender.com/api"
     }
   }
 }
